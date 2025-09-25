@@ -1,22 +1,22 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# BacteriatyperR
+# BacteriatypR
 
 <!-- badges: start -->
 
 <!-- badges: end -->
 
-The goal of BacteriatyperR is to …
+The goal of BacteriatypR is to …
 
 ## Installation
 
-You can install the development version of BacteriatyperR from
+You can install the development version of BacteriatypR from
 [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("pak")
-pak::pak("iali-0/BacteriatyperR")
+pak::pak("iali-0/BacteriatypR")
 ```
 
 ## Example
@@ -24,7 +24,7 @@ pak::pak("iali-0/BacteriatyperR")
 This is a basic example which shows you how to solve a common problem:
 
 ``` r
-library(BacteriatyperR)
+library(BacteriatypR)
 ## basic example code
 ```
 

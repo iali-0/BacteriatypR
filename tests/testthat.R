@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(BacteriatyperR)
+library(BacteriatypR)
 
-test_check("BacteriatyperR")
+test_check("BacteriatypR")

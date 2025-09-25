@@ -1,4 +1,4 @@
-Package: BacteriatyperR
+Package: BacteriatypR
 Type: Package
 Title: implementation of bayesian method for classifiying DNA sequence
 Version: 0.0.0.9000
@@ -11,8 +11,8 @@ Description: package for DNA sequence classification
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-URL: https://github.com/iali-0/BacteriatyperR
-BugReports: https://github.com/iali-0/BacteriatyperR/issues
+URL: https://github.com/iali-0/BacteriatypR
+BugReports: https://github.com/iali-0/BacteriatypR/issues
 RoxygenNote: 7.3.2
 Suggests: 
     testthat (>= 3.0.0)
