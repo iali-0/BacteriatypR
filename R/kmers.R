@@ -16,12 +16,14 @@
 #' @returns A TBD object containing the genus level conditional probability of
 #'          seeing each kmer in a given genus as well as genus names.
 #' @export
-build_kmer_database <- function(sequences, genera, kmer_size){
+build_kmer_database <- function(sequences, genera, kmer_size = 8){
 
   genera_indices <- genera_str_to_index(genera)
-  detected_kmers <- seq_to_base4(sequences) |>
-    detect_kmers_across_sequences(kmer_size = kmer_size)
-  priors <- calcul_word_specific_priors(detected_kmers)
+
+  detected_kmers <- detect_kmers_across_sequences(sequences, kmer_size = kmer_size)
+
+
+  priors <- calcul_word_specific_priors(detected_kmers,kmer_size)
 
   cond_prob <- calc_genus_conditional_prob(detected_kmers,genera_indices, priors)
   genera_names <- get_unique_genera(genera)
@@ -29,28 +31,26 @@ build_kmer_database <- function(sequences, genera, kmer_size){
 }
 
 #'@noRd
+#'@importFrom stringi stri_length stri_sub
 get_all_kmers <- function(x,kmer_size = 8){
-n_kmers <- nchar(x) - kmer_size + 1
-sapply(1:n_kmers,get_kmer,sequence = x,kmer_size = kmer_size)
+  seq_lenght <- stringi::stri_length(x)
+  n_kmers <- seq_lenght - kmer_size + 1
+  seq_kmers <- stringi::stri_sub(x, 1:n_kmers,kmer_size:seq_lenght)
+  return(seq_kmers)
 }
 
 #'@noRd
-get_kmer <- function(sequence, start, kmer_size = 8){
-  if(start + kmer_size - 1 > nchar(sequence)){
-    stop("cannot extract kmer beyond end of sequence")
-    }
-
-  substr(sequence,start,start + kmer_size - 1)
-}
-
-#'@noRd
+#'@importFrom stringi stri_trans_toupper stri_replace_all_charclass stri_trans_char
 seq_to_base4 <- function(sequence){
-  toupper(sequence)|>
-  gsub(pattern = "[^ACGT]",replacement = "N", x = _)|>
-  chartr(old = "ACGT",new = "0123", x = _)
+  stringi::stri_trans_toupper(sequence)|>
+  stringi::stri_replace_all_charclass(str = _,
+                                      pattern = "[^ACGT]",
+                                      replacement = "N")|>
+    stringi::stri_trans_char(str = _, pattern = "ACGT",replacement = "0123")
 }
 
 #'@noRd
+#'@importFrom stats na.omit
 base4_to_index <- function(base4_str){
   # I need output to be index to start at position 1 rather than 0
   # therefore we add 1 to all base10 values
@@ -60,41 +60,51 @@ base4_to_index <- function(base4_str){
 
 #'@noRd
 detect_kmers <- function(sequence, kmer_size = 8){
-  kmers <- get_all_kmers(sequence, kmer_size)
-  indices <- base4_to_index(kmers)
-  n_kmers <- 4^kmer_size
-  kmers_detected <- numeric(n_kmers)
-  kmers_detected[indices] <- 1
-  return(kmers_detected)
+  seq_to_base4(sequence) |>
+    get_all_kmers(kmer_size) |>
+    base4_to_index()
 }
 
 #'@noRd
 detect_kmers_across_sequences <- function(sequences, kmer_size = 8){
-  #kmer_size <- 3
-  #detect_kmers(sequences[1],kmer_size)
-  #detect_kmers(sequences[2],kmer_size)
-  sapply(sequences,detect_kmers,kmer_size = kmer_size,USE.NAMES = FALSE)
+  n_sequences <- length(sequences)
+  kmer_list <- vector(mode = "list", length = n_sequences)
+  for(i in seq_along(1:n_sequences)){
+    kmer_list[[i]] <- detect_kmers(sequences[[i]],kmer_size = kmer_size)
+  }
+  return(kmer_list)
 
 }
 
 #'@noRd
-calcul_word_specific_priors <- function(detect_matrix){
-  (apply(detect_matrix,1,sum) + 0.5)/(1 + ncol(detect_matrix))
+calcul_word_specific_priors <- function(detect_list, kmer_size){
+  #n_seqs <- length(detect_list) #optimise the code
+  #n_kmers <- 4^kmer_size # optimise the code
+  priors <- detect_list |> unlist() |> tabulate(bin = _, nbins = 4^kmer_size)
+  (priors +0.5)/(length(detect_list) + 1)
 }
 
 #'@noRd
-calc_genus_conditional_prob <- function(detect_matrix,genera,#need to be an interger
+calc_genus_conditional_prob <- function(detect_list,genera,#need to be an interger
                                         calcul_word_specific_priors){
-  genus_counts <- table(genera)|> as.vector()
+  genus_counts <- tabulate(genera)#|> as.vector()
   n_genera <- length(genus_counts)
   n_sequences <- length(genera)
-  genus_count <- matrix(0,nrow =nrow(detect_matrix),
-                                                ncol= n_genera)
+  n_kmers <- length(calcul_word_specific_priors)
+  kmer_genus_count <- matrix(0,nrow = n_kmers,ncol= n_genera)
   for(i in 1:n_sequences){
-    genus_count[,genera[i]] <- detect_matrix[,i] + genus_count[,genera[i]]
+    kmer_genus_count[detect_list[[i]],genera[i]] <- kmer_genus_count[detect_list[[i]],genera[i]]+1
 
   }
-  t(t(genus_count + calcul_word_specific_priors)/(genus_counts + 1))
+  #log(t(t(kmer_genus_count + calcul_word_specific_priors)/(genus_counts + 1)))# 10.2 sec
+  #log((kmer_genus_count + calcul_word_specific_priors) %*% diag(1/(genus_counts + 1)))# forever
+  #log(sweep(kmer_genus_count + calcul_word_specific_priors,2,genus_counts + 1,"/"))#10.3sec
+
+  log((kmer_genus_count + calcul_word_specific_priors)/rep(genus_counts + 1,each = n_kmers))#6.2sec
+  #log((kmer_genus_count + calcul_word_specific_priors)/t(replace(genus_counts),
+                                                            #TRUE,genus_counts +1))# 10.8sec
+  #(kmer_genus_count + calcul_word_specific_priors)/(genus_counts +1)[col(genus_counts)]# 8.9sec
+  #calculate_log_probability(kmer_genus_count,calcul_word_specific_priors,genus_counts)
 }
 
 
@@ -109,4 +119,86 @@ get_unique_genera <- function(string){
   factor(string)|> levels()
 
 }
+#'@noRd
+bootstrap_kmers <- function(kmers,kmer_size = 8){
+  n_kmers <- as.integer(length(kmers)/kmer_size)
+  sample(kmers,n_kmers, replace = TRUE)
+}
+#'@noRd
+#'@importFrom Rfast colsums
+classify_bs <- function(unknown_kmers,db){
+  probabilities <- Rfast::colsums(db$conditional_prob[unknown_kmers,])
+  which.max(probabilities)
+}
+#'@noRd
+consensus_bs_class <- function(bs_class,db){
+  taxonomy <- db[["genera"]][bs_class]
+  taxonomy_split <- stringi::stri_split_fixed(taxonomy,pattern = ";")
+  n_levels <- length(taxonomy_split[[1]])
+  consensus_list <- lapply(1:n_levels,
+                           \(i) sapply(taxonomy_split,
+                                       \(p)paste(p[1:i],collapse = ";"))|>
+                             get_consensus()
+    )
+  list(taxonomy = stringi::stri_split_fixed(consensus_list[[n_levels]][["id"]],
+                                            pattern = ";")|>
+         unlist(),
+         confidence = sapply(consensus_list,'[[',"frac"))
+}
 
+#'@noRd
+get_consensus <- function(taxonomy){
+  n_bs <- length(taxonomy)
+  taxonomy_table <- table(taxonomy)
+  max_index <- which.max(taxonomy_table)
+  list(frac = taxonomy_table[[max_index]]/n_bs,
+       id = names(max_index))
+}
+
+#'@noRd
+filter_taxonomy <- function(classification,min_confidence = 0.80){
+  #classification <- Bacteroidales
+  high_confidence <- which(classification$confidence >= min_confidence)
+  filtered <- list()
+  filtered[["taxonomy"]] <- classification[["taxonomy"]][high_confidence]
+  filtered[["confidence"]] <- classification[["confidence"]][high_confidence]
+
+  return(filtered)
+
+}
+#'@noRd
+print_taxonomy <- function(consensus,n_levels = 6){
+  original_levels <-  length(consensus$taxonomy)
+  given_levels <- original_levels
+  while(given_levels < n_levels){
+    consensus$taxonomy[given_levels +1] <- paste(consensus$taxonomy[original_levels],
+                                                 "unclassified",sep = "_")
+    consensus$confidence[given_levels +1] <- consensus$confidence[original_levels]
+    given_levels <- given_levels+1
+  }
+  pretty_confidence <- paste0("(",100*consensus$confidence,")")
+  paste(consensus$taxonomy,pretty_confidence,sep = "", collapse = ";")#to rid off spaces
+}
+
+#' Title
+#'
+#' @param unknown
+#' @param database
+#' @param num_bootstraps
+#' @param kmer_size
+#'
+#' @returns
+#' @export
+#'
+#' @examples
+classify_sequence <- function(unknown = unknown_sequence,database = db,
+                              kmer_size = 8, num_bootstraps = 100){
+
+  kmers <- detect_kmers(sequence = unknown,kmer_size)
+  bs_class <- numeric(length = num_bootstraps)
+  for(i in 1:num_bootstraps){
+    bs_kmers <- bootstrap_kmers(kmers,kmer_size)
+    bs_class[[i]] <- classify_bs(bs_kmers,database)
+  }
+  consensus_bs_class( bs_class,database)
+}

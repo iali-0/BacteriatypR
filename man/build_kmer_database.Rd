@@ -5,7 +5,7 @@
 \title{Build kmer database for classifiying 16s rRNA and other gene sequences to
 a genus when a kmer size is provided.}
 \usage{
-build_kmer_database(sequences, genera, kmer_size)
+build_kmer_database(sequences, genera, kmer_size = 8)
 }
 \arguments{
 \item{sequences}{A vector of reference sequences for which we have
