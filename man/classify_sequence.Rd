@@ -2,18 +2,58 @@
 % Please edit documentation in R/kmers.R
 \name{classify_sequence}
 \alias{classify_sequence}
-\title{Title}
+\title{Classify 16s rRNA gene sequence fragment}
 \usage{
 classify_sequence(
-  unknown = unknown_sequence,
-  database = db,
+  unknown_sequence,
+  database,
   kmer_size = 8,
   num_bootstraps = 100
 )
 }
 \arguments{
-\item{kmer_size}{}
+\item{unknown_sequence}{A DNA sequence that needs to be classified}
+
+\item{database}{A kmer database generated using \code{build_kmer_database}}
+
+\item{kmer_size}{An integer value (default of 8) indicating the size of kmer
+to use for classifying sequences.higher value more RAM
+with potentially more specificity lower value use less RAM.
+Benchmarking has found that the default of 8 provides the
+best specificity with the lowest possible memory requirement
+and fastest execution time.}
+
+\item{num_bootstraps}{An integer value (default of 100). The value of
+\code{num_bootstraps} is the number of randomization
+to perform where \code{1/kmer_size} of all kmers are sampled
+(without replacement) from \verb{unknown sequence}. Higher
+value will provide greater precision on the confidence
+score.}
+}
+\value{
+A list object of two vectors. one vector \code{taxonomy}
+is the taxonomic assignment for each level. the secod
+vector \code{confidence} is the fraction of \code{num_bootstraps}
+that the classifier gave the same classification at that level.
 }
 \description{
-Title
+The \code{classify_seq()} function implements the Wong et al. naive Bayesian
+classification algorithm for 16s rRNA gene sequence.
+}
+\examples{
+kmer_size <- 3
+sequences <- c("ATGCGCTA","ATGCGCTC","ATGCGCTC")
+genera <- c("A", "B", "B")
+db <- build_kmer_database(sequences, genera, kmer_size)
+unknown_sequence <- "ATGCGCTC"
+classify_sequence(unknown_sequence,
+                  database = db,
+                  kmer_size = kmer_size)
+
+
+}
+\references{
+Wang Q, Garrity GM, Tiedje JM, Cole JR. Naive Bayesian classifier for rapid
+assignment of rRNA sequences into the new bacterial taxonomy. Appl Environ
+Microbiol. 2007 Aug;73(16):5261-7. \href{https://dx.doi.org/10.1128/AEM.00062-07}{doi: 10.1128/AEM.00062-07}.
 }

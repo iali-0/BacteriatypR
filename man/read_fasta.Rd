@@ -2,13 +2,45 @@
 % Please edit documentation in R/read_fasta.R
 \name{read_fasta}
 \alias{read_fasta}
-\title{Title}
+\title{Read in a FASTA-formatted file containing DNA sequences}
 \usage{
 read_fasta(file)
 }
 \arguments{
-\item{file}{}
+\item{file}{Either a path to a file, a connection or literal data (either a single string
+or row vector) containing DNA sequences in the standard FASTA format. There
+are no checks to determine whether the data are DNA or amino acid sequences.
+
+files ending in .gz,.bz2, .xz, or .zip will be automatically uncompressed.
+files starting with http://, ftp://, or ftps:// will be automatically
+downloaded and decompressed.}
+}
+\value{
+A data frame object with three columns.The \code{id} column will contain
+the non-space characters following the \code{>} in the header line of each
+sequence; the \code{sequence} column will contain the sequence; and the
+\code{comment} column will contain any text found after the first white
+space character on the header line.
 }
 \description{
-Title
+Given a \href{https://en.wikipedia.org/wiki/FASTA_format}{standard FASTA-formatted file},
+read_fasta` will read in the contents of the file and create three column data
+frame with columns for the sequence id, the sequence itself, and any comments
+found in the header line for each sequence
+}
+\note{
+The sequences in the FASTA file can have file breaks within and
+\code{read_fasta()} will put those separate lines into the same sequence
+}
+\examples{
+temp <- tempfile()
+write(">seqA\nATGCATGC\n>seqB\nATGCATGC",file = temp)
+write(">seqC\nTCCGTACT",file = temp,append = TRUE)
+write(">seqD B.Ceresus UM85\nTCCGTACT",file = temp,append = TRUE)
+write(">seq4\tE.coli k12\tBacteria;proteobacteria;\nTCCGTACT",file = temp,append = TRUE)
+write(">seq_4\tSalmonella LT2\tBacteria;proteobacteria;\nTCCGTACT",file = temp,append = TRUE)
+write(">seqE B.Ceresus UM123\nTCCGTACT\nTCCGTACT",file = temp,append = TRUE)
+
+sequence_df <- read_fasta(temp)
+
 }

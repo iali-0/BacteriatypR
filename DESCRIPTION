@@ -11,16 +11,21 @@ Description: package for DNA sequence classification
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
+LazyDataCompression: xz
 URL: https://github.com/iali-0/BacteriatypR
 BugReports: https://github.com/iali-0/BacteriatypR/issues
 RoxygenNote: 7.3.3
+Roxygen: list(markdown = TRUE)
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 Imports: 
     Rcpp,
+    readr (>= 2.1.5),
     Rfast (>= 2.1.5.2),
     stats (>= 4.5.1),
     stringi (>= 1.8.7)
 LinkingTo: 
     Rcpp
+Depends: 
+    R (>= 3.5)
